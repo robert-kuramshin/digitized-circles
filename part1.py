@@ -1,44 +1,112 @@
+import cv2
+import numpy as np
+
 btn_down = False
 
-def get_points(im):
-    data = {}
-    data['im'] = im.copy()
-    data['lines'] = []
+'''
+0 placing circle center
+3
+4
+'''
+state = 0
+click_start = (0,0)
+circle_center = (0,0)
 
-    cv2.imshow("Image", im)
-    cv2.setMouseCallback("Image", mouse_handler, data)
-    cv2.waitKey(0)
+def smallest_radius(intersects,radius,drawn_center,drawn_radius):
+    r = drawn_radius
+    new_intersects = intersects[:]
+    while(len(intersects) == len(new_intersects)):
+        r-=1 
+        new_intersects = circle_intersects(intersects,radius,drawn_center,r)
+    return r+1
 
-    points = np.uint16(data['lines'])
+def biggest_radius(intersects,radius,drawn_center,drawn_radius):
+    r = drawn_radius
+    new_intersects = intersects[:]
+    while(len(intersects) == len(new_intersects)):
+        r+=1
+        new_intersects = circle_intersects(intersects,radius,drawn_center,r)
+    return r-1
 
-    return points, data['im']
+def circle_intersects(centers,radius,drawn_center,drawn_radius):
+    intersects = []
+    for center in centers:
+        d = dist(center,drawn_center)
+        if(d <= radius+drawn_radius and d>= drawn_radius-radius):
+            intersects.append(center)
+    return intersects
+
+def dist(a,b):
+    return np.sqrt((b[0]-a[0])**2 + (b[1]-a[1])**2)
 
 def mouse_handler(event, x, y, flags, data):
     global btn_down
+    global state
+    global background
+    global click_start
+    global circle_center
+    global circle_centers
+    global c_radius
 
     if event == cv2.EVENT_LBUTTONUP and btn_down:
         btn_down = False
-        data['lines'][0].append((x, y)) 
-        cv2.circle(data['im'], (x, y), 3, (0, 0, 255),5)
-        cv2.line(data['im'], data['lines'][0][0], data['lines'][0][1], (0,0,255), 2)
-        cv2.imshow("Image", data['im'])
+        image = data.copy()
+        if (state == 0):
+            state=1
+            r = int(dist(circle_center,(x,y)))
+            overlapped = circle_intersects(circle_centers,c_radius,circle_center,r)
+            if len(overlapped) == 0:
+                cv2.imshow("Image", image)
+                return
+            for circle in overlapped:
+                cv2.circle(image, circle, c_radius, (255, 0, 0), -1)
+            sr = smallest_radius(overlapped,c_radius,circle_center,r)
+            br = biggest_radius(overlapped,c_radius,circle_center,r)
+            cv2.circle(image, circle_center, r, (255, 0, 0), 2)
+            cv2.circle(image, circle_center, sr, (0, 0, 255), 1)
+            cv2.circle(image, circle_center, br, (0, 0, 255), 1)
+            cv2.imshow("Image", image)
 
     elif event == cv2.EVENT_MOUSEMOVE and btn_down:
-        image = data['im'].copy()
-        cv2.line(image, data['lines'][0][0], (x, y), (0,0,0), 1)
-        cv2.imshow("Image", image)
+        image = data.copy()
+        if state == 0:
+            r = int(dist(circle_center,(x,y)))
+            overlapped = circle_intersects(circle_centers,c_radius,circle_center,r)
+            for circle in overlapped:
+                cv2.circle(image, circle, c_radius, (255, 0, 0), -1)
+            cv2.line(image, circle_center, (x, y), (0,0,0), 1)
+            cv2.circle(image, circle_center, int(dist(circle_center,(x,y))), (255, 0, 0), 2)
+            cv2.imshow("Image", image)
 
-    elif event == cv2.EVENT_LBUTTONDOWN and len(data['lines']) < 2:
+    elif event == cv2.EVENT_LBUTTONDOWN:
         btn_down = True
-        data['lines'].insert(0,[(x, y)])
-        cv2.circle(data['im'], (x, y), 3, (0, 0, 255), 5, 16)
-        cv2.imshow("Image", data['im'])
+        if(state ==1):
+            cv2.imshow("Image", data)
+            state=0
+        if(state == 0):
+            circle_center = (x,y)
 
 
-import cv2
-import numpy as np
-img = 255 * np.ones((400,400,3), np.uint8)
-pts, final_image = get_points(img)
-cv2.imshow('Image', final_image)
-print (pts)
+image_height = 800
+image_width = 800
+
+n_dots_h = 20
+n_dots_v = 20
+
+background = 255 * np.ones((image_height,image_width,3), np.uint8)
+
+
+c_radius = 10
+h_offset = int(image_height/(n_dots_h+1))
+v_offset = int(image_width/(n_dots_v+1))
+
+circle_centers = []
+
+for i in range(1,n_dots_h+1):
+    for j in range(1,n_dots_v+1):
+        circle_centers.append((i*h_offset, j*v_offset))
+        cv2.circle(background, (i*h_offset, j*v_offset), c_radius, (100, 100, 100), -1)
+
+cv2.imshow("Image", background)
+cv2.setMouseCallback("Image", mouse_handler, background.copy())
 cv2.waitKey(0)
