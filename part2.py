@@ -13,6 +13,7 @@ state = 0
 click_start = (0,0)
 circle_center = (0,0)
 clicked_arr = []
+generate = False
 
 def clicked_circe(centers,click,radius):
     for center in centers:
@@ -37,6 +38,8 @@ def error_fun(args):
     return (len(clicked_arr)-n)
 
 def get_centroid(centers):
+    if(len(centers) == 0):
+        return None
     x=0
     y=0
     for center in centers:
@@ -60,38 +63,41 @@ def mouse_handler(event, x, y, flags, data):
     global btn_down
     global state
     global background
-    global click_start
-    global circle_center
     global circle_centers
     global c_radius
     global clicked_arr
+    global generate
+    global image
 
     if event == cv2.EVENT_LBUTTONUP and btn_down:
         btn_down = False
-        if (state == 0):
-            if(x>780 and y>780):
-                centroid = get_centroid(clicked_arr)
-                avg_dist = avg_distance(clicked_arr,centroid)
-                guess = (centroid[0],centroid[1],avg_dist)
-                cv2.circle(data, centroid, avg_dist, (0, 0, 255), 1)
-                m = minimize(error_fun,guess,method="Nelder-Mead").x
-                cv2.circle(data, (int(m[0]),int(m[1])), int(m[2]), (255, 0, 0), 1)
-                cv2.imshow("Image", data)
 
-            clicked = clicked_circe(circle_centers,(x,y),c_radius)
-            if clicked:
-                clicked_arr.append(clicked)
-                cv2.circle(data, clicked, c_radius, (255, 0, 0), -1)
-                cv2.imshow("Image", data)
+        if(x>720 and y>780):
+            centroid = get_centroid(clicked_arr)
+            if(centroid is None):
+                return
 
-    elif event == cv2.EVENT_MOUSEMOVE and btn_down:
-        image = data.copy()
-        if state == 0:
-            return
+            generate = True
+            avg_dist = avg_distance(clicked_arr,centroid)
+            guess = (centroid[0],centroid[1],avg_dist)
+            cv2.circle(image, centroid, avg_dist, (0, 0, 255), 1)
+            m = minimize(error_fun,guess,method="Nelder-Mead").x
+            cv2.circle(image, (int(m[0]),int(m[1])), int(m[2]), (255, 0, 0), 1)
+            cv2.imshow("Part 2", image)
 
+        clicked = clicked_circe(circle_centers,(x,y),c_radius)
+        if clicked:
+            clicked_arr.append(clicked)
+            cv2.circle(image, clicked, c_radius, (255, 0, 0), -1)
+            cv2.imshow("Part 2", image)
 
     elif event == cv2.EVENT_LBUTTONDOWN:
         btn_down = True
+        if generate:
+            image = background.copy()
+            generate = False
+            clicked_arr = []
+            cv2.imshow("Part 2", background)
 
 
 
@@ -115,6 +121,9 @@ for i in range(1,n_dots_h+1):
         circle_centers.append((i*h_offset, j*v_offset))
         cv2.circle(background, (i*h_offset, j*v_offset), c_radius, (100, 100, 100), -1)
 
-cv2.imshow("Image", background)
-cv2.setMouseCallback("Image", mouse_handler, background.copy())
+cv2.rectangle(background, (720,780), (800,800), (0,255,0),-1)
+image =background.copy()
+
+cv2.imshow("Part 2", image)
+cv2.setMouseCallback("Part 2", mouse_handler, image)
 cv2.waitKey(0)
