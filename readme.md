@@ -38,3 +38,10 @@ Visuals Explanation:
 
 Algorithms:  
 `fit circle` 
+
+## Examples ##
+# #
+![Part1 GIF](images/part1.gif)
+# #
+![Part2 GIF](images/part2.gif)
+# #
