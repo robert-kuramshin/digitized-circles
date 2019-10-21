@@ -150,7 +150,7 @@ def mouse_handler(event, x, y, flags, data):
     """
     global btn_down
     global background
-    global circle_centers
+    global grid_circle_centers
     global c_radius
     global clicked_arr
     global generate
@@ -187,7 +187,7 @@ def mouse_handler(event, x, y, flags, data):
             cv2.imshow("Part 2", image)
 
         # find clicked circle if any
-        clicked = clicked_circe(circle_centers, (x, y), c_radius)
+        clicked = clicked_circe(grid_circle_centers, (x, y), c_radius)
 
         if clicked:
             # add clicked circle to list of selected circles
